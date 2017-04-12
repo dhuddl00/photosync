@@ -1,3 +1,5 @@
+#!/etc/anaconda2/bin/python
+
 from __future__ import print_function
 import httplib2
 import shutil
@@ -22,11 +24,20 @@ try:
 except ImportError:
   flags = None
 
+### GLOBALS ###
+
 # If modifying these scopes, delete your previously saved credentials
 # at ~/.credentials/drive-python-quickstart.json
 SCOPES = 'https://picasaweb.google.com/data/ https://www.googleapis.com/auth/drive'
 CLIENT_SECRET_FILE = 'client_secret.json'
 APPLICATION_NAME = 'Personal Photo Sync'
+
+PHOTO_ALBUM = "6316489518140194977"
+VIDEO_ALBUM = "0B5QT17osW5Emc1NnUEJHRUtONEU"
+SOURCE_DIRS = ["/media/dan/disk/DCIM/",
+               "/media/dan/disk/PRIVATE/AVCHD/BDMV/STREAM/"]
+STAGING_DIR = os.path.join(os.path.expanduser("~"), "staging")
+MASTERS_DIR = "/media/wdmycloud/HomeShare/Photos/masters"
 
 def get_credentials():
     home_dir = os.path.expanduser('~')
@@ -197,16 +208,51 @@ def find(name, path):
             return os.path.join(root, name)
     return None
     
+def stage():
+    source_dirs = SOURCE_DIRS
+    target_dir = STAGING_DIR
+    print("Pulling files off the media card")
+    if not os.path.exists(target_dir):
+      raise Exception("ERROR Directory not found: %s" % target_dir)
 
-def main():
-    ### GLOBALS ###
-    PHOTO_ALBUM = "6316489518140194977"
-    VIDEO_ALBUM = "0B5QT17osW5Emc1NnUEJHRUtONEU"
-    STAGING_DIR = os.path.join(os.path.expanduser("~"), "staging")
-    MASTERS_DIR = "/media/wdmycloud/HomeShare/Photos/masters"
+    known_files = set(get_all_known_files())
+
+    for frompath in source_dirs:
+     if os.path.exists(frompath):
+
+      for subdir, dirs, files in os.walk(frompath):
+       print(">>>> Processing files in: %s" % (subdir))
+       for file in sorted(files):
+         if file in known_files:
+           print("Skipping file: %s" % (file)) 
+         else:
+           filepath = subdir + os.sep + file
+           newpath = target_dir + os.sep + file
+           shutil.copy2(filepath, newpath)
+           if os.path.exists(newpath):
+             print("file %s staged successfully..." % file)
+           else:
+             print("Copy seems to have failed...\n%s  ->  %s" % (filepath, newpath))
+     else:
+       print("Looks like media card not mounted")
+
+def main(stg=True, proc=True ):
+    print("SOURCE_DIRS: %s" % ",".join(SOURCE_DIRS))
     print("STAGING_DIR: %s" % STAGING_DIR)
     print("MASTERS_DIR: %s" % MASTERS_DIR)
 
+    ### copy media off of camera card
+    if stg:
+      print("Staging...")
+      stage()
+  
+    ### Send to masters and google
+    if proc:
+      print("Processing...")
+      process()
+
+def process():
+    ### process all files residing in staging directory
     credentials = get_credentials()
     http = credentials.authorize(httplib2.Http())
     
@@ -281,5 +327,12 @@ def main():
             print("  >>> Cannot delete because files still exist: %s" % (subdir) )
         
     print(">>> FINISHED DELETING DIRECTORIES <<<")
+
+def get_all_known_files():
+  all_files = []
+  for subdir, dirs, files in os.walk(MASTERS_DIR):
+    all_files.extend(files)
+  return all_files
+
 if __name__ == '__main__':
-    main()
+    main(stg=True, proc=True)
