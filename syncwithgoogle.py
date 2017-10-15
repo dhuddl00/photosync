@@ -223,11 +223,14 @@ def stage():
       for subdir, dirs, files in os.walk(frompath):
        print(">>>> Processing files in: %s" % (subdir))
        for file in sorted(files):
-         if file in known_files:
-           print("Skipping file: %s" % (file)) 
+         filepath = os.path.join(subdir,file)
+         filesize = os.stat(filepath).st_size 
+         (basefilename, fileextn) = os.path.splitext(file)
+         newfn = "%s_%i%s" % (basefilename, filesize, fileextn)
+         newpath = os.path.join(target_dir,newfn)
+         if newfn in known_files:
+           print("Skipping file: %s -> %s" % (file,newfn)) 
          else:
-           filepath = subdir + os.sep + file
-           newpath = target_dir + os.sep + file
            shutil.copy2(filepath, newpath)
            if os.path.exists(newpath):
              print("file %s staged successfully..." % file)
