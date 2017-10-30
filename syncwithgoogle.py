@@ -255,6 +255,10 @@ def main(stg=True, proc=True ):
       process()
 
 def process():
+    ### Check that target directory is mounted correctly, should be 3.5TB
+    if os.statvfs(MASTERS_DIR).f_blocks/1024.0/1024.0/1024.0 < 3.0:
+      raise Exception("WD MyCloud does not seem to be mounted.")
+
     ### process all files residing in staging directory
     credentials = get_credentials()
     http = credentials.authorize(httplib2.Http())
