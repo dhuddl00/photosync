@@ -1,4 +1,5 @@
-#!/etc/anaconda2/bin/python
+#!/usr/bin/python2
+#!/usr/bin/env python
 
 from __future__ import print_function
 import httplib2
@@ -256,7 +257,19 @@ def main(stg=True, proc=True ):
     ### Send to masters and google
     if proc:
       print("Processing...")
-      process()
+      tries = 0
+      while True:
+        try:
+          process()
+          break
+        except e as Exception:
+          if tries >= 10:
+            print("Reached max tries...failing.")
+            raise e
+          else:
+            print("Failed %i times...trying again." % (tries))
+            tries = tries + 1
+            time.sleep(10)
 
 def process():
     ### process all files residing in staging directory
