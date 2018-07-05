@@ -262,7 +262,7 @@ def main(stg=True, proc=True ):
         try:
           process()
           break
-        except e as Exception:
+        except Exception as e:
           if tries >= 10:
             print("Reached max tries...failing.")
             raise e
